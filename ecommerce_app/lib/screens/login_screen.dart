@@ -66,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Login'),
+        backgroundColor: Color(0x5A5A5A),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -79,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
+                  decoration: const InputDecoration(// lighter field background
                     labelText: 'Email',
                     border: OutlineInputBorder(),
                   ),

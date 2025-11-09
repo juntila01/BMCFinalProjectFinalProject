@@ -1,16 +1,11 @@
 import 'package:ecommerce_app/providers/cart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ecommerce_app/screens/order_success_screen.dart';
+import 'package:ecommerce_app/screens/payment_screen.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
-  @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-class _CartScreenState extends State<CartScreen> {
-  bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<CartProvider>(context);
@@ -56,59 +51,84 @@ class _CartScreenState extends State<CartScreen> {
             margin: const EdgeInsets.all(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column( // 4. Use a Column for multiple rows
                 children: [
-                  const Text(
-                    'Total:',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+
+                  // 5. ROW 1: Subtotal
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Subtotal:',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Text(
+                        '₱${cart.subtotal.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '₱${cart.totalPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+
+                  const SizedBox(height: 8),
+
+                  // 6. ROW 2: VAT
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'VAT (12%):',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Text(
+                        '₱${cart.vat.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+
+                  const Divider(height: 20, thickness: 1),
+
+                  // 7. ROW 3: Total
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total:',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '₱${cart.totalPriceWithVat.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
 
+
+          // 6. --- THIS IS THE MODIFIED BUTTON ---
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),
-              onPressed: (_isLoading || cart.items.isEmpty) ? null : () async {
-                setState(() {
-                  _isLoading = true;
-                });
-
-                try {
-                  final cartProvider = Provider.of<CartProvider>(context, listen: false);
-                  await cartProvider.placeOrder();
-                  await cartProvider.clearCart();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const OrderSuccessScreen()),
-                        (route) => false,
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to place order: $e')),
-                  );
-                } finally {
-                  if (mounted) {
-                    setState(() {
-                      _isLoading = false;
-                    });
-                  }
-                }
+              // 7. Disable if cart is empty, otherwise navigate
+              onPressed: cart.items.isEmpty ? null : () {
+                // 8. Navigate to our new PaymentScreen
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => PaymentScreen(
+                      // 9. Pass the final VAT-inclusive total
+                      totalAmount: cart.totalPriceWithVat,
+                    ),
+                  ),
+                );
               },
-
-              child: _isLoading
-                  ? const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 68, 59, 62)),
-              )
-                  : const Text('Place Order'),
+              // 10. No more spinner!
+              child: const Text('Proceed to Payment'),
             ),
           ),
         ],

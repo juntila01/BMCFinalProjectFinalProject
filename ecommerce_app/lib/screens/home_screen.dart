@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ecommerce_app/screens/admin_panel_screen.dart';
 import 'package:ecommerce_app/widgets/product_card.dart';
-import 'package:ecommerce_app/widgets/product_detail_screen.dart';
+import 'package:ecommerce_app/screens/product_detail_screen.dart';
 import 'package:ecommerce_app/providers/cart_provider.dart';
 import 'package:ecommerce_app/screens/cart_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:ecommerce_app/screens/order_history_screen.dart';
+import 'package:ecommerce_app/screens/profile_screen.dart';
+import 'package:ecommerce_app/widgets/notification_icon.dart';
+import 'package:ecommerce_app/screens/chat_screen.dart';// 1. ADD THIS
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,8 +20,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _userRole = 'admin';
+  String _userRole = 'user';
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -56,7 +60,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentUser != null ? 'Welcome, ${_currentUser!.email}' : 'Home'),
+        title: Image.asset(
+          'assets/images/Splash_logo.png', // 3. The path to your logo
+          height: 40, // 4. Set a fixed height
+        ),
+        backgroundColor: Color(0x5A5A5A),
         actions: [
           Consumer<CartProvider>(
             builder: (context, cart, child) {
@@ -76,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          const NotificationIcon(),
 
           IconButton(
             icon: const Icon(Icons.receipt_long),
@@ -101,10 +110,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+          // 6. ADD this new "Profile" IconButton
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: _signOut,
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -165,6 +181,48 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      floatingActionButton: _userRole == 'user'
+          ? StreamBuilder<DocumentSnapshot>( // 2. A new StreamBuilder
+        // 3. Listen to *this user's* chat document
+        stream: _firestore.collection('chats').doc(_currentUser!.uid).snapshots(),
+        builder: (context, snapshot) {
+
+          int unreadCount = 0;
+          // 4. Check if the doc exists and has our count field
+          if (snapshot.hasData && snapshot.data!.exists) {
+            // Ensure data is not null before casting
+            final data = snapshot.data!.data();
+            if (data != null) {
+              unreadCount = (data as Map<String, dynamic>)['unreadByUserCount'] ?? 0;
+            }
+          }
+
+          // 5. --- THE FIX for "trailing not defined" ---
+          //    We wrap the FAB in the Badge widget
+          return Badge(
+            // 6. Show the count in the badge
+            label: Text('$unreadCount'),
+            // 7. Only show the badge if the count is > 0
+            isLabelVisible: unreadCount > 0,
+            // 8. The FAB is now the *child* of the Badge
+            child: FloatingActionButton.extended(
+              icon: const Icon(Icons.support_agent),
+              label: const Text('Contact Admin'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      chatRoomId: _currentUser!.uid,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+          // --- END OF FIX ---
+        },
+      )
+          : null, // 9. If admin, don't show the FAB
     );
   }
 }

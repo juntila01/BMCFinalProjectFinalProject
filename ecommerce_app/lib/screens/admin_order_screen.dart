@@ -13,11 +13,24 @@ class AdminOrderScreen extends StatefulWidget {
 class _AdminOrderScreenState extends State<AdminOrderScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> _updateOrderStatus(String orderId, String newStatus) async {
+  // 1. MODIFY this function to accept userId
+  Future<void> _updateOrderStatus(String orderId, String newStatus, String userId) async {
     try {
+      // 2. This part is the same (update the order)
       await _firestore.collection('orders').doc(orderId).update({
         'status': newStatus,
       });
+      // 3. --- ADD THIS NEW LOGIC ---
+      //    Create a new notification document
+      await _firestore.collection('notifications').add({
+        'userId': userId, // 4. The user this notification is for
+        'title': 'Order Status Updated',
+        'body': 'Your order ($orderId) has been updated to "$newStatus".',
+        'orderId': orderId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false, // 5. Mark it as unread
+      });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Order status updated!')),
       );
@@ -27,7 +40,7 @@ class _AdminOrderScreenState extends State<AdminOrderScreen> {
       );
     }
   }
-  void _showStatusDialog(String orderId, String currentStatus) {
+  void _showStatusDialog(String orderId, String currentStatus, String userId) {
     showDialog(
       context: context,
       builder: (context) {
@@ -42,7 +55,7 @@ class _AdminOrderScreenState extends State<AdminOrderScreen> {
                 title: Text(status),
                 trailing: currentStatus == status ? const Icon(Icons.check) : null,
                 onTap: () {
-                  _updateOrderStatus(orderId, status);
+                  _updateOrderStatus(orderId, status, userId);
                   Navigator.of(context).pop();
                 },
               );
@@ -93,6 +106,7 @@ class _AdminOrderScreenState extends State<AdminOrderScreen> {
                   .format(timestamp.toDate());
 
               final String status = orderData['status'];
+              final String userId = orderData['userId'] ?? 'Unknown User';
 
               return Card(
                 margin: const EdgeInsets.all(8.0),
@@ -120,7 +134,7 @@ class _AdminOrderScreenState extends State<AdminOrderScreen> {
                   ),
 
                   onTap: () {
-                    _showStatusDialog(order.id, status);
+                    _showStatusDialog(order.id, status, userId);
                   },
                 ),
               );

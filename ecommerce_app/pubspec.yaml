@@ -40,6 +40,7 @@ dependencies:
   cloud_firestore: ^6.0.3
   provider: ^6.1.5+1
   intl: ^0.20.2
+  google_fonts: ^6.3.2
 
 
 dev_dependencies:
@@ -99,9 +100,9 @@ flutter:
 
 flutter_native_splash:
 
-  color: "#FFFFFF"
+  color: "#2A2A2E"
   image: assets/images/Splash_logo.png
   android_12:
-    color: "#FFFFFF"
+    color: "#2A2A2E"
     image: assets/images/Splash_logo.png
     web: true
